@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Real-Time Screen Share Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      text-align: center; 
+      background: #0d0d13; 
+      color: white; 
+      margin: 0; 
+      padding: 15px; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    h1 { 
+      color: #00d2ff; 
+      text-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+      margin: 10px 0;
+      font-size: 24px;
+    }
+    #menu {
+      background: #161622;
+      padding: 25px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      max-width: 320px;
+      width: 100%;
+      margin-top: 20px;
+    }
+    p { font-size: 15px; color: #a0a0b0; margin: 8px 0; }
+    
+    /* 📺 SCREEN STREAM DISPLAY DECK BLOCK */
+    #video-container {
+      width: 100%;
+      max-width: 500px;
+      background: #000;
+      border: 2px dashed #333;
+      border-radius: 14px;
+      margin: 15px 0;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    }
+    #video-container.active {
+      border-color: #00ff88;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .placeholder-txt {
+      position: absolute;
+      color: #555566;
+      font-weight: bold;
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    button { 
+      background: #00d2ff; 
+      color: black; 
+      border: none; 
+      padding: 12px 25px; 
+      font-size: 16px; 
+      margin: 10px 0; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: transform 0.15s, box-shadow 0.15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+    
+    .control-deck {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      max-width: 280px;
+      margin-top: 10px;
+    }
+    
+    /* 🎥 THE CAMERA (SCREEN SHARE) STYLISH INTERFACE LAYOUT */
+    .cam-btn {
+      background: #23273a;
+      color: #00d2ff;
+      border: 2px solid #00d2ff;
+      margin: 0;
+    }
+    .cam-btn.active {
+      background: #00d2ff;
+      color: black;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+
+    /* 🎙️ THE MIC PLACED EXACTLY BELOW SCREEN CAMERA OPTION */
+    .mic-btn {
+      background: #23273a;
+      color: #ff4757;
+      border: 2px solid #ff4757;
+      margin: 0;
+    }
+    .mic-btn.active {
+      background: #2ed573;
+      color: black;
+      border: 2px solid #2ed573;
+      box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);
+    }
+    
+    .exit-btn {
+      background: #1a1a24;
+      color: #ff4757;
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      margin: 5px 0 0 0;
+      font-size: 14px;
+      padding: 8px;
+    }
+
+    input { 
+      padding: 12px; 
+      font-size: 20px; 
+      width: 100%; 
+      text-align: center; 
+      border-radius: 10px; 
+      border: 2px solid #252538; 
+      background: #09090f;
+      color: white;
+      letter-spacing: 5px; 
+      box-sizing: border-box;
+      outline: none;
+      margin-top: 5px;
+    }
+    input:focus {
+      border-color: #00d2ff;
+    }
+    #game-room {
+      background: #161622;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      width: 100%;
+      max-width: 480px;
+      box-sizing: border-box;
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #status { 
+      font-size: 15px; 
+      margin: 10px 0; 
+      font-weight: bold;
+      color: #ffd700;
+    }
+    #roomCode { 
+      font-size: 34px; 
+      color: #00ff88; 
+      font-weight: bold; 
+      letter-spacing: 6px; 
+      margin: 5px 0;
+    }
+  </style>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <h1>Live Screen Room 📡</h1>
+
+  <div id="menu">
+    <button onclick="createLiveRoom()">Create Room ID</button>
+    <p style="margin: 15px 0; font-weight: bold; color: #3d3d5c;">─ OR ─</p>
+    <input type="number" id="joinInput" placeholder="1234" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+    <button onclick="joinLiveRoom()" style="background: #00ff88; color: black;">Join Room</button>
+  </div>
+
+  <div id="game-room" style="display:none;">
+    <p style="margin-bottom: 0; font-size: 13px;">Room ID Number</p>
+    <p id="roomCode"></p>
+    <div id="status">Connecting System Engine...</div>
+    
+    <div id="video-container">
+      <div class="placeholder-txt" id="v-placeholder">Waiting for Screen Share Video Signal...</div>
+      <video id="remote-video-screen" autoplay playsinline></video>
+    </div>
+    
+    <div class="control-deck">
+      <button id="camBtn" onclick="toggleScreenShare()" class="cam-btn">📺 Screen Share: OFF</button>
+      <button id="micBtn" onclick="toggleMicSystem()" class="mic-btn">🎙️ Mic: OFF</button>
+      
+      <button onclick="location.reload()" class="exit-btn">Leave Room 🚪</button>
+    </div>
+  </div>
+
+  <script>
+    const securityAlert = "Inspect panni pakka vandhingala? Aiyayo en owner romba moola karanga! ungalukku oru option tharan, my owner insta ID tharen: @highpet01. Avan kitta poi vangikonga, but some amount keppan. Avan kitta 'megu' nu sollunga discount pannuvan. Naan dhan sonnan nu sollidathinga! 🙏🤫";
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) return false; };
+    setInterval(() => { const s = +new Date(); debugger; if (+new Date() - s > 100) { alert(securityAlert); window.location.reload(); } }, 250);
+  </script>
+
+  <script>
+    let peer, conn, role, targetPeerId = null;
+    let localScreenStream = null;
+    let localAudioStream = null;
+    
+    let isSharingScreen = false;
+    let isMicEnabled = false;
+    let runningVoiceCall = null;
+    let runningScreenCall = null;
+
+    const statusEl = document.getElementById('status');
+    const camBtnEl = document.getElementById('camBtn');
+    const micBtnEl = document.getElementById('micBtn');
+    const videoNode = document.getElementById('remote-video-screen');
+    const placeholderEl = document.getElementById('v-placeholder');
+    const videoContainerEl = document.getElementById('video-container');
+
+    function createLiveRoom() {
+      role = 'host';
+      const roomId = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById('roomCode').innerText = roomId;
+      showActiveDashboard();
+      statusEl.innerText = 'Room code set! Share the ID with your friend da.';
+
+      peer = new Peer('screen-' + roomId);
+      peer.on('connection', c => {
+        conn = c;
+        targetPeerId = c.peer;
+        bindNetworkSignals();
+        statusEl.innerText = 'Friend connected! Ready for screen streaming da.';
+      });
+      
+      bindStreamPipelinesListener();
+    }
+
+    function joinLiveRoom() {
+      role = 'guest';
+      const roomId = document.getElementById('joinInput').value;
+      if (roomId.length !== 4) return alert('4-digit Room ID correct ah podu da mapla!');
+      document.getElementById('roomCode').innerText = roomId;
+      showActiveDashboard();
+      statusEl.innerText = 'Connecting to Host room...';
+
+      peer = new Peer();
+      peer.on('open', () => {
+        targetPeerId = 'screen-' + roomId;
+        conn = peer.connect(targetPeerId);
+        bindNetworkSignals();
+      });
+
+      bindStreamPipelinesListener();
+    }
+
+    function showActiveDashboard() {
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('game-room').style.display = 'flex';
+    }
+
+    function bindNetworkSignals() {
+      conn.on('open', () => {
+        if (role === 'guest') statusEl.innerText = 'Connected! Ready to view or share screens.';
+      });
+      conn.on('data', data => {
+        if (data.type === 'stream_ended') {
+          clearVideoNodeLayer();
+          statusEl.innerText = 'Friend stopped screen sharing.';
+        }
+      });
+      conn.on('close', () => {
+        statusEl.innerText = 'Friend left the room 😭';
+        cleanUpAllHardwareStreams();
+      });
+    }
+
+    // 🔊 AUDIO & VIDEO INCOMING CONTROLLER LISTENERS HANDSHAKES
+    function bindStreamPipelinesListener() {
+      peer.on('call', call => {
+        // Evaluate the metadata parameters inside call packets to parse channels
+        if (call.metadata && call.metadata.type === 'screen_share') {
+          runningScreenCall = call;
+          call.answer(); // Auto handshake incoming video packet layers
+          call.on('stream', remoteVideoTrack => {
+            placeholderEl.style.display = 'none';
+            videoContainerEl.classList.add('active');
+            videoNode.srcObject = remoteVideoTrack;
+            statusEl.innerText = 'Viewing friend\'s live screen matrix! 👀';
+          });
+        } else {
+          // Fallback triggers for standard mic sync packets processing
+          runningVoiceCall = call;
+          initializeLocalVoiceTrack().then(ready => {
+            call.answer(localAudioStream);
+            processIncomingVoiceStream(call);
+          });
+        }
+      });
+    }
+
+    function processIncomingVoiceStream(call) {
+      call.on('stream', remoteAudioTrack => {
+        if (document.getElementById('remote-speaker-node')) return;
+        const speakerElement = document.createElement('audio');
+        speakerElement.id = 'remote-speaker-node';
+        speakerElement.srcObject = remoteAudioTrack;
+        speakerElement.autoplay = true;
+        document.body.appendChild(speakerElement);
+      });
+    }
+
+    // 📺 THE DYNAMIC SCREEN CAMERA SWITCH HARDWARE CONTROLLER LOGICS
+    async function toggleScreenShare() {
+      if (!targetPeerId || !conn || !conn.open) return alert("Friend innum join aagala da mapla!");
+
+      if (!isSharingScreen) {
+        try {
+          // Trigger standard browser system display media engine elements capture
+          localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+          isSharingScreen = true;
+          camBtnEl.innerText = "📺 Screen Share: ON (Live)";
+          camBtnEl.classList.add('active');
+          statusEl.innerText = 'Sharing unga phone screen to friend...';
+
+          // Initialize custom structured calls with screen share type metadata headers
+          runningScreenCall = peer.call(targetPeerId, localScreenStream, { metadata: { type: 'screen_share' } });
+          
+          // Safety loop event triggers if user manually ends sharing through internal system bars
+          localScreenStream.getVideoTracks()[0].onended = () => {
+            stopScreenSharingPipeline();
+          };
+        } catch (err) {
+          console.error(err);
+          alert("Screen share start panna midiyala da. Permission issue check pannu.");
+        }
+      } else {
+        stopScreenSharingPipeline();
+      }
+    }
+
+    function stopScreenSharingPipeline() {
+      isSharingScreen = false;
+      camBtnEl.innerText = "📺 Screen Share: OFF";
+      camBtnEl.classList.remove('active');
+      statusEl.innerText = 'Screen sharing stopped.';
+      
+      if (localScreenStream) {
+        localScreenStream.getTracks().forEach(t => t.stop());
+        localScreenStream = null;
+      }
+      if (conn && conn.open) {
+        conn.send({ type: 'stream_ended' });
+      }
+    }
+
+    // 🎙️ MIC AUDIO HARDWARE LOGICS CONTROLLER LOOP PIPELINES
+    async function initializeLocalVoiceTrack() {
+      if (localAudioStream) return true;
+      try {
+        localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        localAudioStream.getAudioTracks()[0].enabled = false; // Muted by default layout blocks
+        return true;
+      } catch (err) {
+        alert("Mic permission block aayiruku da mapla!");
+        return false;
+      }
+    }
+
+    async function toggleMicSystem() {
+      if (!targetPeerId || !conn || !conn.open) return alert("Friend room kulla join aagala da mapla!");
+      
+      const ready = await initializeLocalVoiceTrack();
+      if (!ready) return;
+
+      isMicEnabled = !isMicEnabled;
+      localAudioStream.getAudioTracks()[0].enabled = isMicEnabled;
+
+      if (isMicEnabled) {
+        micBtnEl.innerText = "🎙️ Mic: ON (Live)";
+        micBtnEl.classList.add('active');
+        
+        // Establish bidirectional mic connections layout tracks
+        const audioCall = peer.call(targetPeerId, localAudioStream, { metadata: { type: 'voice_chat' } });
+        processIncomingVoiceStream(audioCall);
+      } else {
+        micBtnEl.innerText = "🎙️ Mic: OFF";
+        micBtnEl.classList.remove('active');
+      }
+    }
+
+    function clearVideoNodeLayer() {
+      videoNode.srcObject = null;
+      placeholderEl.style.display = 'block';
+      videoContainerEl.classList.remove('active');
+    }
+
+    function cleanUpAllHardwareStreams() {
+      if (localScreenStream) localScreenStream.getTracks().forEach(t => t.stop());
+      if (localAudioStream) localAudioStream.getTracks().forEach(t => t.stop());
+      clearVideoNodeLayer();
+      const sNode = document.getElementById('remote-speaker-node');
+      if (sNode) sNode.remove();
+    }
+  </script>
+</body>
+</html>
