@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Laptop Screen Share with Fullscreen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      text-align: center; 
+      background: #0d0d13; 
+      color: white; 
+      margin: 0; 
+      padding: 15px; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    h1 { 
+      color: #00d2ff; 
+      text-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+      margin: 10px 0;
+      font-size: 24px;
+    }
+    #menu {
+      background: #161622;
+      padding: 25px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      max-width: 320px;
+      width: 100%;
+      margin-top: 20px;
+    }
+    p { font-size: 15px; color: #a0a0b0; margin: 8px 0; }
+    
+    /* 📺 PC HD SCREEN DISPLAY FRAME */
+    #video-container {
+      width: 100%;
+      max-width: 750px;
+      background: #000;
+      border: 2px dashed #00d2ff;
+      border-radius: 14px;
+      margin: 15px 0;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+    }
+    #video-container.active {
+      border-color: #00ff88;
+      border-style: solid;
+    }
+    
+    /* ⚡ PSEUDO CLASS FOR PURE BROWSER FULLSCREEN STANDARDS */
+    #video-container:fullscreen {
+      max-width: 100vw;
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+    }
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain; /* Retains actual PC screen ratio bounds */
+      background: #000;
+    }
+    .placeholder-txt {
+      position: absolute;
+      color: #555566;
+      font-weight: bold;
+      font-size: 15px;
+      pointer-events: none;
+      padding: 10px;
+    }
+
+    button { 
+      background: #00d2ff; 
+      color: black; 
+      border: none; 
+      padding: 12px 25px; 
+      font-size: 16px; 
+      margin: 10px 0; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: transform 0.15s, box-shadow 0.15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+    
+    .control-deck {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      max-width: 280px;
+      margin-top: 10px;
+    }
+    
+    .share-btn {
+      background: #23273a;
+      color: #00ff88;
+      border: 2px solid #00ff88;
+      margin: 0;
+    }
+    .share-btn.active {
+      background: #00ff88;
+      color: black;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+    }
+
+    /* 💎 THE NEW EXPAND CONTROLLER */
+    .fullscreen-btn {
+      background: #1a1a2e;
+      color: #ffd700;
+      border: 2px solid #ffd700;
+      margin: 0;
+    }
+    .fullscreen-btn:hover {
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    }
+
+    .mic-btn {
+      background: #23273a;
+      color: #ff4757;
+      border: 2px solid #ff4757;
+      margin: 0;
+    }
+    .mic-btn.active {
+      background: #2ed573;
+      color: black;
+      border: 2px solid #2ed573;
+      box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);
+    }
+    
+    .exit-btn {
+      background: #1a1a24;
+      color: #ff4757;
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      margin: 5px 0 0 0;
+      font-size: 14px;
+      padding: 8px;
+    }
+
+    input { 
+      padding: 12px; 
+      font-size: 20px; 
+      width: 100%; 
+      text-align: center; 
+      border-radius: 10px; 
+      border: 2px solid #252538; 
+      background: #09090f;
+      color: white;
+      letter-spacing: 5px; 
+      box-sizing: border-box;
+      outline: none;
+      margin-top: 5px;
+    }
+    input:focus {
+      border-color: #00d2ff;
+    }
+    #game-room {
+      background: #161622;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      width: 100%;
+      max-width: 800px;
+      box-sizing: border-box;
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #status { 
+      font-size: 15px; 
+      margin: 10px 0; 
+      font-weight: bold;
+      color: #ffd700;
+    }
+    #roomCode { 
+      font-size: 34px; 
+      color: #00ff88; 
+      font-weight: bold; 
+      letter-spacing: 6px; 
+      margin: 5px 0;
+    }
+  </style>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <h1>PC Screen Share Room 💻📡</h1>
+
+  <div id="menu">
+    <button onclick="createLiveRoom()">Create PC Room</button>
+    <p style="margin: 15px 0; font-weight: bold; color: #3d3d5c;">─ OR ─</p>
+    <input type="number" id="joinInput" placeholder="1234" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+    <button onclick="joinLiveRoom()" style="background: #00ff88; color: black;">Join Room</button>
+  </div>
+
+  <div id="game-room" style="display:none;">
+    <p style="margin-bottom: 0; font-size: 13px;">Room ID Number</p>
+    <p id="roomCode"></p>
+    <div id="status">Connecting PC Signaling Loop...</div>
+    
+    <div id="video-container">
+      <div class="placeholder-txt" id="v-placeholder">Waiting for Opponent to Share Laptop Screen...</div>
+      <video id="remote-video-screen" autoplay playsinline></video>
+    </div>
+    
+    <div class="control-deck">
+      <button onclick="triggerMaximizeView()" class="fullscreen-btn">📺 Open Full Screen</button>
+      
+      <button id="shareBtn" onclick="toggleLaptopScreenShare()" class="share-btn">🖥️ Share My Laptop Screen</button>
+      <button id="micBtn" onclick="toggleMicSystem()" class="mic-btn">🎙️ Voice Mic: OFF</button>
+      
+      <button onclick="location.reload()" class="exit-btn">Leave Room 🚪</button>
+    </div>
+  </div>
+
+  <script>
+    const securityAlert = "Inspect panni pakka vandhingala? Aiyayo en owner romba moola karanga! ungalukku oru option tharan, my owner insta ID tharen: @highpet01. Avan kitta poi vangikonga, but some amount keppan. Avan kitta 'megu' nu sollunga discount pannuvan. Naan dhan sonnan nu sollidathinga! 🙏🤫";
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) return false; };
+    setInterval(() => { const s = +new Date(); debugger; if (+new Date() - s > 100) { alert(securityAlert); window.location.reload(); } }, 250);
+  </script>
+
+  <script>
+    let peer, conn, role, targetPeerId = null;
+    let mixedLocalStream = null; 
+    let isSharing = false;
+    let isMicEnabled = false;
+
+    const statusEl = document.getElementById('status');
+    const shareBtnEl = document.getElementById('shareBtn');
+    const micBtnEl = document.getElementById('micBtn');
+    const videoNode = document.getElementById('remote-video-screen');
+    const placeholderEl = document.getElementById('v-placeholder');
+    const videoContainerEl = document.getElementById('video-container');
+
+    function createLiveRoom() {
+      role = 'host';
+      const roomId = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById('roomCode').innerText = roomId;
+      showActiveDashboard();
+      statusEl.innerText = 'PC Room Ready! Share this ID with your friend da.';
+
+      peer = new Peer('pcshare-' + roomId);
+      peer.on('connection', c => {
+        conn = c;
+        targetPeerId = c.peer;
+        bindNetworkSignals();
+        statusEl.innerText = 'Friend joined! Click Share Screen to broadcast mapla.';
+      });
+      
+      bindStreamPipelinesListener();
+    }
+
+    function joinLiveRoom() {
+      role = 'guest';
+      const roomId = document.getElementById('joinInput').value;
+      if (roomId.length !== 4) return alert('4-digit Room ID correct ah podu da mapla!');
+      document.getElementById('roomCode').innerText = roomId;
+      showActiveDashboard();
+      statusEl.innerText = 'Connecting to Host PC Room...';
+
+      peer = new Peer();
+      peer.on('open', () => {
+        targetPeerId = 'pcshare-' + roomId;
+        conn = peer.connect(targetPeerId);
+        bindNetworkSignals();
+      });
+
+      bindStreamPipelinesListener();
+    }
+
+    function showActiveDashboard() {
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('game-room').style.display = 'flex';
+    }
+
+    function bindNetworkSignals() {
+      conn.on('open', () => {
+        if (role === 'guest') statusEl.innerText = 'Connected! Hit Share Screen whenever you are ready.';
+      });
+      conn.on('data', data => {
+        if (data.type === 'screen_killed') {
+          clearVideoNodeLayer();
+          statusEl.innerText = 'Friend stopped screen sharing.';
+        }
+      });
+      conn.on('close', () => {
+        statusEl.innerText = 'Friend disconnected from PC link. 😭';
+        cleanUpAllHardwareStreams();
+      });
+    }
+
+    function bindStreamPipelinesListener() {
+      peer.on('call', call => {
+        call.answer(mixedLocalStream);
+        
+        call.on('stream', remoteStream => {
+          if (remoteStream.getVideoTracks().length > 0) {
+            placeholderEl.style.display = 'none';
+            videoContainerEl.classList.add('active');
+            videoNode.srcObject = remoteStream;
+            statusEl.innerText = 'Viewing Live Laptop Screen Frame! 🎯';
+          }
+          
+          if (!document.getElementById('remote-pc-audio') && remoteStream.getAudioTracks().length > 0) {
+            const audioNode = document.createElement('audio');
+            audioNode.id = 'remote-pc-audio';
+            audioNode.srcObject = remoteStream;
+            audioNode.autoplay = true;
+            document.body.appendChild(audioNode);
+          }
+        });
+      });
+    }
+
+    // 🖥️ FULL SCREEN TOGGLE LOGIC (ESC KEY HANDLING BYPASSED AUTOMATICALLY)
+    function triggerMaximizeView() {
+      if (!videoNode.srcObject) return alert("Opponent innum screen share-ae pannala da mapla! 📺");
+      
+      // Request standard fullscreen browser wrapper matrix hooks
+      if (videoContainerEl.requestFullscreen) {
+        videoContainerEl.requestFullscreen();
+      } else if (videoContainerEl.webkitRequestFullscreen) { /* Safari support */
+        videoContainerEl.webkitRequestFullscreen();
+      } else if (videoContainerEl.msRequestFullscreen) { /* IE11 support */
+        videoContainerEl.msRequestFullscreen();
+      }
+    }
+
+    async function toggleLaptopScreenShare() {
+      if (!targetPeerId || !conn || !conn.open) return alert("Opponent PC connected ah illa da mapla!");
+      
+      if (!isSharing) {
+        try {
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+          const voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          
+          mixedLocalStream = new MediaStream();
+          mixedLocalStream.addTrack(displayStream.getVideoTracks()[0]);
+          mixedLocalStream.addTrack(voiceStream.getAudioTracks()[0]);
+
+          mixedLocalStream.getAudioTracks()[0].enabled = isMicEnabled;
+
+          isSharing = true;
+          shareBtnEl.innerText = "🛑 Stop Screen Share";
+          shareBtnEl.classList.add('active');
+          statusEl.innerText = 'Your Laptop screen is broadcasting live!';
+
+          peer.call(targetPeerId, mixedLocalStream);
+
+          displayStream.getVideoTracks()[0].onended = () => {
+            killLocalScreenBroadcast();
+          };
+
+        } catch (err) {
+          console.error(err);
+          alert("Screen share cancel or permission denied da mapla!");
+        }
+      } else {
+        killLocalScreenBroadcast();
+      }
+    }
+
+    async function toggleMicSystem() {
+      if (!mixedLocalStream) return alert("Modhalla Screen Share-ah ON pannu da mapla!");
+      
+      isMicEnabled = !isMicEnabled;
+      mixedLocalStream.getAudioTracks()[0].enabled = isMicEnabled;
+
+      if (isMicEnabled) {
+        micBtnEl.innerText = "🎙️ Mic: ON (Live)";
+        micBtnEl.classList.add('active');
+      } else {
+        micBtnEl.innerText = "🎙️ Mic: OFF";
+        micBtnEl.classList.remove('active');
+      }
+    }
+
+    function killLocalScreenBroadcast() {
+      isSharing = false;
+      shareBtnEl.innerText = "🖥️ Share My Laptop Screen";
+      shareBtnEl.classList.remove('active');
+      
+      if (mixedLocalStream) {
+        mixedLocalStream.getTracks().forEach(track => track.stop());
+        mixedLocalStream = null;
+      }
+      
+      isMicEnabled = false;
+      micBtnEl.innerText = "🎙️ Voice Mic: OFF";
+      micBtnEl.classList.remove('active');
+
+      if (conn && conn.open) conn.send({ type: 'screen_killed' });
+      statusEl.innerText = 'Screen broadcast stopped.';
+    }
+
+    function clearVideoNodeLayer() {
+      videoNode.srcObject = null;
+      placeholderEl.style.display = 'block';
+      videoContainerEl.classList.remove('active');
+      // Exit fullscreen if active when screen drops
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      }
+    }
+
+    document.getElementById('remote-pc-audio')?.remove();
+  </script>
+</body>
+</html>
