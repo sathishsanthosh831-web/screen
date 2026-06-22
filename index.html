@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Hybrid Screen & Camera Live Room</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      text-align: center; 
+      background: #0d0d13; 
+      color: white; 
+      margin: 0; 
+      padding: 15px; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    h1 { 
+      color: #00d2ff; 
+      text-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+      margin: 10px 0;
+      font-size: 24px;
+    }
+    #menu {
+      background: #161622;
+      padding: 25px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      max-width: 320px;
+      width: 100%;
+      margin-top: 20px;
+    }
+    p { font-size: 15px; color: #a0a0b0; margin: 8px 0; }
+    
+    #video-container {
+      width: 100%;
+      max-width: 500px;
+      background: #000;
+      border: 2px dashed #333;
+      border-radius: 14px;
+      margin: 15px 0;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    }
+    #video-container.active {
+      border-color: #00ff88;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .placeholder-txt {
+      position: absolute;
+      color: #555566;
+      font-weight: bold;
+      font-size: 14px;
+      pointer-events: none;
+      padding: 10px;
+    }
+
+    button { 
+      background: #00d2ff; 
+      color: black; 
+      border: none; 
+      padding: 12px 25px; 
+      font-size: 16px; 
+      margin: 10px 0; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      transition: transform 0.15s, box-shadow 0.15s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+    
+    .control-deck {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      max-width: 280px;
+      margin-top: 10px;
+    }
+    
+    .share-btn {
+      background: #23273a;
+      color: #00d2ff;
+      border: 2px solid #00d2ff;
+      margin: 0;
+    }
+    .share-btn.active {
+      background: #00d2ff;
+      color: black;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+
+    .mic-btn {
+      background: #23273a;
+      color: #ff4757;
+      border: 2px solid #ff4757;
+      margin: 0;
+    }
+    .mic-btn.active {
+      background: #2ed573;
+      color: black;
+      border: 2px solid #2ed573;
+      box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);
+    }
+    
+    .exit-btn {
+      background: #1a1a24;
+      color: #ff4757;
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      margin: 5px 0 0 0;
+      font-size: 14px;
+      padding: 8px;
+    }
+
+    input { 
+      padding: 12px; 
+      font-size: 20px; 
+      width: 100%; 
+      text-align: center; 
+      border-radius: 10px; 
+      border: 2px solid #252538; 
+      background: #09090f;
+      color: white;
+      letter-spacing: 5px; 
+      box-sizing: border-box;
+      outline: none;
+      margin-top: 5px;
+    }
+    input:focus {
+      border-color: #00d2ff;
+    }
+    #game-room {
+      background: #161622;
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 210, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      width: 100%;
+      max-width: 480px;
+      box-sizing: border-box;
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #status { 
+      font-size: 15px; 
+      margin: 10px 0; 
+      font-weight: bold;
+      color: #ffd700;
+    }
+    #roomCode { 
+      font-size: 34px; 
+      color: #00ff88; 
+      font-weight: bold; 
+      letter-spacing: 6px; 
+      margin: 5px 0;
+    }
+  </style>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <h1>Hybrid Stream Room 📡</h1>
+
+  <div id="menu">
+    <button onclick="createLiveRoom()">Create Room ID</button>
+    <p style="margin: 15px 0; font-weight: bold; color: #3d3d5c;">─ OR ─</p>
+    <input type="number" id="joinInput" placeholder="1234" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+    <button onclick="joinLiveRoom()" style="background: #00ff88; color: black;">Join Room</button>
+  </div>
+
+  <div id="game-room" style="display:none;">
+    <p style="margin-bottom: 0; font-size: 13px;">Room ID Number</p>
+    <p id="roomCode"></p>
+    <div id="status">Connecting System Engine...</div>
+    
+    <div id="video-container">
+      <div class="placeholder-txt" id="v-placeholder">Waiting for Friend's Live Visual Stream...</div>
+      <video id="remote-video-screen" autoplay playsinline></video>
+    </div>
+    
+    <div class="control-deck">
+      <button id="shareBtn" onclick="toggleMediaSharingStream()" class="share-btn">🖥️ Share Screen / Camera: OFF</button>
+      <button id="micBtn" onclick="toggleMicSystem()" class="mic-btn">🎙️ Mic: OFF</button>
+      
+      <button onclick="location.reload()" class="exit-btn">Leave Room 🚪</button>
+    </div>
+  </div>
+
+  <script>
+    const securityAlert = "Inspect panni pakka vandhingala? Aiyayo en owner romba moola karanga! ungalukku oru option tharan, my owner insta ID tharen: @highpet01. Avan kitta poi vangikonga, but some amount keppan. Avan kitta 'megu' nu sollunga discount pannuvan. Naan dhan sonnan nu sollidathinga! 🙏🤫";
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => { if (e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) || (e.ctrlKey && e.keyCode == 85)) return false; };
+    setInterval(() => { const s = +new Date(); debugger; if (+new Date() - s > 100) { alert(securityAlert); window.location.reload(); } }, 250);
+  </script>
+
+  <script>
+    let peer, conn, role, targetPeerId = null;
+    let localMediaStream = null;
+    
+    let isSharing = false;
+    let isMicEnabled = false;
+    let currentMediaCall = null;
+    let isMobileDevice = false;
+
+    const statusEl = document.getElementById('status');
+    const shareBtnEl = document.getElementById('shareBtn');
+    const micBtnEl = document.getElementById('micBtn');
+    const videoNode = document.getElementById('remote-video-screen');
+    const placeholderEl = document.getElementById('v-placeholder');
+    const videoContainerEl = document.getElementById('video-container');
+
+    // Simple mobile browser identification tracking loops
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      isMobileDevice = true;
+    }
+
+    window.onload = () => {
+      if (isMobileDevice) {
+        shareBtnEl.innerText = "📷 Camera Video: OFF";
+      } else {
+        shareBtnEl.innerText = "🖥️ Screen Share: OFF";
+      }
+    };
+
+    function createLiveRoom() {
+      role = 'host';
+      const roomId = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById('roomCode').innerText = roomId;
+      showActiveDashboard();
+      statusEl.innerText = 'Room code set! Share the ID with your friend da.';
+
+      peer = new Peer('hybrid-' + roomId);
+      peer.on('connection', c => {
+        conn = c;
+        targetPeerId = c.peer;
+        bindNetworkSignals();
+        statusEl.innerText = 'Friend connected! Turn on stream to start.';
+      });
+      
+      bindStreamPipelinesListener();
+    }
+
+    function joinLiveRoom() {
+      role = 'guest';
+      const roomId = document.getElementById('joinInput').value;
+      if (roomId.length !== 4) return alert('4-digit Room ID correct ah podu da mapla!');
+      document.getElementById('roomCode').innerText = roomId;
+      showActiveDashboard();
+      statusEl.innerText = 'Connecting to Host room...';
+
+      peer = new Peer();
+      peer.on('open', () => {
+        targetPeerId = 'hybrid-' + roomId;
+        conn = peer.connect(targetPeerId);
+        bindNetworkSignals();
+      });
+
+      bindStreamPipelinesListener();
+    }
+
+    function showActiveDashboard() {
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('game-room').style.display = 'flex';
+    }
+
+    function bindNetworkSignals() {
+      conn.on('open', () => {
+        if (role === 'guest') statusEl.innerText = 'Connected! Turn on your stream blocks.';
+      });
+      conn.on('data', data => {
+        if (data.type === 'stream_off') {
+          clearVideoNodeLayer();
+          statusEl.innerText = 'Friend stopped visual stream.';
+        }
+      });
+      conn.on('close', () => {
+        statusEl.innerText = 'Friend left the room 😭';
+        cleanUpAllHardwareStreams();
+      });
+    }
+
+    function bindStreamPipelinesListener() {
+      peer.on('call', async call => {
+        currentMediaCall = call;
+        await forceInitializeLocalHardware();
+        call.answer(localMediaStream);
+        
+        call.on('stream', remoteStream => {
+          if (remoteStream.getVideoTracks().length > 0 && remoteStream.getVideoTracks()[0].enabled) {
+            placeholderEl.style.display = 'none';
+            videoContainerEl.classList.add('active');
+            videoNode.srcObject = remoteStream;
+            statusEl.innerText = 'Viewing live friend stream data matrix! 👀';
+          }
+          
+          if (!document.getElementById('remote-audio-node')) {
+            const audioNode = document.createElement('audio');
+            audioNode.id = 'remote-audio-node';
+            audioNode.srcObject = remoteStream;
+            audioNode.autoplay = true;
+            document.body.appendChild(audioNode);
+          }
+        });
+      });
+    }
+
+    // THE CORE DUAL-HARDWARE ADAPTIVE PIPELINE ENGINE LAYER
+    async function forceInitializeLocalHardware() {
+      if (localMediaStream) return true;
+      try {
+        if (isMobileDevice) {
+          // If mobile device client, request standard video camera feeds track streams
+          localMediaStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "user" }, 
+            audio: true 
+          });
+        } else {
+          // If laptop client, trigger display media capture for screen frames mirroring
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          
+          localMediaStream = new MediaStream();
+          localMediaStream.addTrack(displayStream.getVideoTracks()[0]);
+          localMediaStream.addTrack(audioStream.getAudioTracks()[0]);
+        }
+        
+        localMediaStream.getVideoTracks()[0].enabled = false;
+        localMediaStream.getAudioTracks()[0].enabled = false;
+        return true;
+      } catch (err) {
+        console.error(err);
+        alert("Permission block or device support error da mapla!");
+        return false;
+      }
+    }
+
+    async function toggleMediaSharingStream() {
+      if (!targetPeerId || !conn || !conn.open) return alert("Friend room kulla join aagala da mapla!");
+      
+      const ready = await forceInitializeLocalHardware();
+      if (!ready) return;
+
+      isSharing = !isSharing;
+      localMediaStream.getVideoTracks()[0].enabled = isSharing;
+
+      if (isSharing) {
+        shareBtnEl.innerText = isMobileDevice ? "📷 Camera Video: ON (Live)" : "🖥️ Screen Share: ON (Live)";
+        shareBtnEl.classList.add('active');
+        statusEl.innerText = 'Unga visual stream working live da!';
+        
+        triggerCallStreamingEngine();
+      } else {
+        shareBtnEl.innerText = isMobileDevice ? "📷 Camera Video: OFF" : "🖥️ Screen Share: OFF";
+        shareBtnEl.classList.remove('active');
+        if (conn && conn.open) conn.send({ type: 'stream_off' });
+      }
+    }
+
+    async function toggleMicSystem() {
+      if (!targetPeerId || !conn || !conn.open) return alert("Friend room kulla join aagala da mapla!");
+      
+      const ready = await forceInitializeLocalHardware();
+      if (!ready) return;
+
+      isMicEnabled = !isMicEnabled;
+      localMediaStream.getAudioTracks()[0].enabled = isMicEnabled;
+
+      if (isMicEnabled) {
+        micBtnEl.innerText = "🎙️ Mic: ON (Live)";
+        micBtnEl.classList.add('active');
+        
+        triggerCallStreamingEngine();
+      } else {
+        micBtnEl.innerText = "🎙️ Mic: OFF";
+        micBtnEl.classList.remove('active');
+      }
+    }
+
+    function triggerCallStreamingEngine() {
+      if (peer && targetPeerId) {
+        const call = peer.call(targetPeerId, localMediaStream);
+        currentMediaCall = call;
+        
+        call.on('stream', remoteStream => {
+          if (remoteStream.getVideoTracks().length > 0) {
+            placeholderEl.style.display = 'none';
+            videoContainerEl.classList.add('active');
+            videoNode.srcObject = remoteStream;
+          }
+        });
+      }
+    }
+
+    function clearVideoNodeLayer() {
+      videoNode.srcObject = null;
+      placeholderEl.style.display = 'block';
+      videoContainerEl.classList.remove('active');
+    }
+
+    function cleanUpAllHardwareStreams() {
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(t => t.stop());
+        localMediaStream = null;
+      }
+      clearVideoNodeLayer();
+      const aNode = document.getElementById('remote-audio-node');
+      if (aNode) aNode.remove();
+    }
+  </script>
+</body>
+</html>
